@@ -24,8 +24,6 @@
 		<pool>2.2</pool>
 		<lettuce>3.4.2.Final</lettuce>
 		<jedis>2.9.0</jedis>
-		<srp>0.7</srp>
-		<jredis>06052013</jredis>
 		<multithreadedtc>1.01</multithreadedtc>
 	</properties>
 
@@ -83,27 +81,6 @@
 			<groupId>redis.clients</groupId>
 			<artifactId>jedis</artifactId>
 			<version>${jedis}</version>
-			<optional>true</optional>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.jredis</groupId>
-			<artifactId>jredis-core-api</artifactId>
-			<version>${jredis}</version>
-			<optional>true</optional>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.jredis</groupId>
-			<artifactId>jredis-core-ri</artifactId>
-			<version>${jredis}</version>
-			<optional>true</optional>
-		</dependency>
-		
-		<dependency>
-			<groupId>com.github.spullara.redis</groupId>
-			<artifactId>client</artifactId>
-			<version>${srp}</version>
 			<optional>true</optional>
 		</dependency>
 		

@@ -33,7 +33,6 @@ import org.springframework.data.redis.DoubleObjectFactory;
 import org.springframework.data.redis.LongAsStringObjectFactory;
 import org.springframework.data.redis.LongObjectFactory;
 import org.springframework.data.redis.ObjectFactory;
-import org.springframework.data.redis.connection.ConnectionUtils;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisZSetCommands;
 import org.springframework.data.redis.core.BoundZSetOperations;
@@ -217,7 +216,7 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testIntersectAndStore() {
-		assumeTrue(!ConnectionUtils.isJredis(template.getConnectionFactory()));
+
 		RedisZSet<T> interSet1 = createZSetFor("test:zset:inter1");
 		RedisZSet<T> interSet2 = createZSetFor("test:zset:inter");
 
@@ -263,7 +262,7 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 
 	@Test
 	public void testRangeWithScores() {
-		assumeTrue(!ConnectionUtils.isJredis(template.getConnectionFactory()));
+
 		T t1 = getT();
 		T t2 = getT();
 		T t3 = getT();
@@ -304,7 +303,7 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 
 	@Test
 	public void testReverseRangeWithScores() {
-		assumeTrue(!ConnectionUtils.isJredis(template.getConnectionFactory()));
+
 		T t1 = getT();
 		T t2 = getT();
 		T t3 = getT();
@@ -332,10 +331,8 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 	@Test
 	public void testRangeByLexUnbounded() {
 
-		assumeThat(
-				factory,
-				anyOf(instanceOf(DoubleObjectFactory.class), instanceOf(DoubleAsStringObjectFactory.class),
-						instanceOf(LongAsStringObjectFactory.class), instanceOf(LongObjectFactory.class)));
+		assumeThat(factory, anyOf(instanceOf(DoubleObjectFactory.class), instanceOf(DoubleAsStringObjectFactory.class),
+				instanceOf(LongAsStringObjectFactory.class), instanceOf(LongObjectFactory.class)));
 
 		T t1 = getT();
 		T t2 = getT();
@@ -357,10 +354,8 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 	@Test
 	public void testRangeByLexBounded() {
 
-		assumeThat(
-				factory,
-				anyOf(instanceOf(DoubleObjectFactory.class), instanceOf(DoubleAsStringObjectFactory.class),
-						instanceOf(LongAsStringObjectFactory.class), instanceOf(LongObjectFactory.class)));
+		assumeThat(factory, anyOf(instanceOf(DoubleObjectFactory.class), instanceOf(DoubleAsStringObjectFactory.class),
+				instanceOf(LongAsStringObjectFactory.class), instanceOf(LongObjectFactory.class)));
 
 		T t1 = getT();
 		T t2 = getT();
@@ -382,10 +377,8 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 	@Test
 	public void testRangeByLexUnboundedWithLimit() {
 
-		assumeThat(
-				factory,
-				anyOf(instanceOf(DoubleObjectFactory.class), instanceOf(DoubleAsStringObjectFactory.class),
-						instanceOf(LongAsStringObjectFactory.class), instanceOf(LongObjectFactory.class)));
+		assumeThat(factory, anyOf(instanceOf(DoubleObjectFactory.class), instanceOf(DoubleAsStringObjectFactory.class),
+				instanceOf(LongAsStringObjectFactory.class), instanceOf(LongObjectFactory.class)));
 
 		T t1 = getT();
 		T t2 = getT();
@@ -394,8 +387,8 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 		zSet.add(t1, 1);
 		zSet.add(t2, 2);
 		zSet.add(t3, 3);
-		Set<T> tuples = zSet.rangeByLex(RedisZSetCommands.Range.unbounded(), RedisZSetCommands.Limit.limit().count(1)
-				.offset(1));
+		Set<T> tuples = zSet.rangeByLex(RedisZSetCommands.Range.unbounded(),
+				RedisZSetCommands.Limit.limit().count(1).offset(1));
 
 		assertEquals(1, tuples.size());
 		T tuple = tuples.iterator().next();
@@ -408,10 +401,8 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 	@Test
 	public void testRangeByLexBoundedWithLimit() {
 
-		assumeThat(
-				factory,
-				anyOf(instanceOf(DoubleObjectFactory.class), instanceOf(DoubleAsStringObjectFactory.class),
-						instanceOf(LongAsStringObjectFactory.class), instanceOf(LongObjectFactory.class)));
+		assumeThat(factory, anyOf(instanceOf(DoubleObjectFactory.class), instanceOf(DoubleAsStringObjectFactory.class),
+				instanceOf(LongAsStringObjectFactory.class), instanceOf(LongObjectFactory.class)));
 
 		T t1 = getT();
 		T t2 = getT();
@@ -420,8 +411,8 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 		zSet.add(t1, 1);
 		zSet.add(t2, 2);
 		zSet.add(t3, 3);
-		Set<T> tuples = zSet.rangeByLex(RedisZSetCommands.Range.range().gte(t1), RedisZSetCommands.Limit.limit().count(1)
-				.offset(1));
+		Set<T> tuples = zSet.rangeByLex(RedisZSetCommands.Range.range().gte(t1),
+				RedisZSetCommands.Limit.limit().count(1).offset(1));
 
 		assertEquals(1, tuples.size());
 		T tuple = tuples.iterator().next();
@@ -430,7 +421,7 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 
 	@Test
 	public void testReverseRangeByScore() {
-		assumeTrue(!ConnectionUtils.isJredis(template.getConnectionFactory()));
+
 		T t1 = getT();
 		T t2 = getT();
 		T t3 = getT();
@@ -448,7 +439,7 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 
 	@Test
 	public void testReverseRangeByScoreWithScores() {
-		assumeTrue(!ConnectionUtils.isJredis(template.getConnectionFactory()));
+
 		T t1 = getT();
 		T t2 = getT();
 		T t3 = getT();
@@ -492,7 +483,7 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 
 	@Test
 	public void testRangeByScoreWithScores() {
-		assumeTrue(!ConnectionUtils.isJredis(template.getConnectionFactory()));
+
 		T t1 = getT();
 		T t2 = getT();
 		T t3 = getT();
@@ -558,7 +549,7 @@ public abstract class AbstractRedisZSetTest<T> extends AbstractRedisCollectionTe
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testUnionAndStore() {
-		assumeTrue(!ConnectionUtils.isJredis(template.getConnectionFactory()));
+
 		RedisZSet<T> unionSet1 = createZSetFor("test:zset:union1");
 		RedisZSet<T> unionSet2 = createZSetFor("test:zset:union2");
 
