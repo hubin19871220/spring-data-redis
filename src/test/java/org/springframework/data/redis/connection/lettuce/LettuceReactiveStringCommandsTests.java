@@ -142,7 +142,7 @@ public class LettuceReactiveStringCommandsTests extends LettuceReactiveCommandsT
 		nativeCommands.set(KEY_2, VALUE_2);
 
 		Flux<Tuple2<ByteBuffer, ByteBuffer>> result = connection.stringCommands()
-				.get(Flux.fromIterable(Arrays.asList(KEY_1_BBUFFER, KEY_2_BBUFFER)));
+				.get(Flux.fromStream(Arrays.asList(KEY_1_BBUFFER, KEY_2_BBUFFER).stream()));
 
 		TestSubscriber<Tuple2<ByteBuffer, ByteBuffer>> subscriber = TestSubscriber.create();
 		result.subscribe(subscriber);

@@ -111,9 +111,12 @@ public class LettuceReactiveStringCommands implements ReactiveStringCommands {
 	@Override
 	public Flux<Tuple2<ByteBuffer, ByteBuffer>> get(Publisher<ByteBuffer> keys) {
 
+		final Publisher<ByteBuffer> p = !keys.getClass().getName().endsWith("FluxStream") ? keys
+				: Flux.fromIterable(Flux.from(keys).collectList().block());
+
 		return connection.execute(cmd -> {
 
-			return Flux.zip(keys, Flux.from(keys).flatMap(key -> {
+			return Flux.zip(p, Flux.from(p).flatMap(key -> {
 				return LettuceReactiveRedisConnection.<ByteBuffer> monoConverter()
 						.convert(cmd.get(key.array()).map(ByteBuffer::wrap));
 			}));
