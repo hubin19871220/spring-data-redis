@@ -32,9 +32,9 @@ import org.springframework.data.redis.connection.ReactiveRedisConnection.Reactiv
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.test.TestSubscriber;
-import reactor.core.tuple.Tuple;
-import reactor.core.tuple.Tuple2;
+import reactor.test.TestSubscriber;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 /**
  * @author Christoph Strobl
@@ -84,8 +84,8 @@ public class LettuceReactiveStringCommandsTests extends LettuceReactiveCommandsT
 		subscriber.await();
 
 		subscriber.assertValueCount(2);
-		subscriber.assertValues(Tuple.of(KV_1, Optional.<ByteBuffer> empty()),
-				Tuple.of(kv12, Optional.<ByteBuffer> of(VALUE_1_BBUFFER)));
+		subscriber.assertValues(Tuples.of(KV_1, Optional.<ByteBuffer> empty()),
+				Tuples.of(kv12, Optional.<ByteBuffer> of(VALUE_1_BBUFFER)));
 
 		assertThat(nativeCommands.get(KEY_1), is(equalTo(VALUE_2)));
 	}
@@ -150,7 +150,7 @@ public class LettuceReactiveStringCommandsTests extends LettuceReactiveCommandsT
 
 		subscriber.assertValueCount(2);
 		subscriber.assertContainValues(new HashSet<>(
-				Arrays.asList(Tuple.of(KEY_1_BBUFFER, VALUE_1_BBUFFER), Tuple.of(KEY_2_BBUFFER, VALUE_2_BBUFFER))));
+				Arrays.asList(Tuples.of(KEY_1_BBUFFER, VALUE_1_BBUFFER), Tuples.of(KEY_2_BBUFFER, VALUE_2_BBUFFER))));
 	}
 
 	/**

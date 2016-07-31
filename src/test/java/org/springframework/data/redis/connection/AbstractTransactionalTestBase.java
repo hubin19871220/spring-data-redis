@@ -36,13 +36,11 @@ import org.springframework.data.redis.test.util.RelaxedJUnit4ClassRunner;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.transaction.AfterTransaction;
-import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 
 @RunWith(RelaxedJUnit4ClassRunner.class)
-@Transactional
-@TransactionConfiguration(transactionManager = "transactionManager")
+@Transactional(transactionManager = "transactionManager")
 public abstract class AbstractTransactionalTestBase {
 
 	@Configuration
@@ -100,8 +98,9 @@ public abstract class AbstractTransactionalTestBase {
 
 		RedisConnection connection = factory.getConnection();
 		for (String key : KEYS) {
-			Assert.assertThat("Values for " + key + " should " + (valuesShouldHaveBeenPersisted ? "" : "NOT ")
-					+ "have been found.", connection.exists(key.getBytes()), Is.is(valuesShouldHaveBeenPersisted));
+			Assert.assertThat(
+					"Values for " + key + " should " + (valuesShouldHaveBeenPersisted ? "" : "NOT ") + "have been found.",
+					connection.exists(key.getBytes()), Is.is(valuesShouldHaveBeenPersisted));
 		}
 		connection.close();
 	}

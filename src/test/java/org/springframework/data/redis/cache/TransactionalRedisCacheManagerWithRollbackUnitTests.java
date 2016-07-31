@@ -40,7 +40,6 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.transaction.AfterTransaction;
-import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,11 +48,10 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @RunWith(RelaxedJUnit4ClassRunner.class)
 @ContextConfiguration
-@Transactional
-@TransactionConfiguration(transactionManager = "transactionManager")
+@Transactional(transactionManager = "transactionManager")
 public class TransactionalRedisCacheManagerWithRollbackUnitTests {
 
-	@SuppressWarnings("rawtypes")//
+	@SuppressWarnings("rawtypes") //
 	protected @Autowired RedisTemplate redisTemplate;
 	protected @Autowired FooService transactionalService;
 

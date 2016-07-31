@@ -40,7 +40,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.test.util.RelaxedJUnit4ClassRunner;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,8 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @RunWith(RelaxedJUnit4ClassRunner.class)
 @ContextConfiguration
-@Transactional
-@TransactionConfiguration(transactionManager = "transactionManager")
+@Transactional(transactionManager = "transactionManager")
 public class RedisCacheManagerTransactionalUnitTests {
 
 	@Autowired protected CacheManager cacheManager;

@@ -25,9 +25,9 @@ import org.junit.Test;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.test.TestSubscriber;
-import reactor.core.tuple.Tuple;
-import reactor.core.tuple.Tuple2;
+import reactor.test.TestSubscriber;
+import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 /**
  * @author Christoph Strobl
@@ -63,7 +63,7 @@ public class LettuceReactiveKeyCommandsTests extends LettuceReactiveCommandsTest
 		subscriber.await();
 
 		subscriber.assertValueCount(2);
-		subscriber.assertValues(Tuple.of(KEY_1_BBUFFER, 1L), Tuple.of(KEY_2_BBUFFER, 1L));
+		subscriber.assertValues(Tuples.of(KEY_1_BBUFFER, 1L), Tuples.of(KEY_2_BBUFFER, 1L));
 	}
 
 	/**

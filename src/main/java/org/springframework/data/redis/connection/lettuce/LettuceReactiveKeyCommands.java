@@ -24,7 +24,7 @@ import org.springframework.data.redis.connection.ReactiveRedisConnection;
 import org.springframework.util.Assert;
 
 import reactor.core.publisher.Flux;
-import reactor.core.tuple.Tuple2;
+import reactor.util.function.Tuple2;
 
 /**
  * @author Christoph Strobl

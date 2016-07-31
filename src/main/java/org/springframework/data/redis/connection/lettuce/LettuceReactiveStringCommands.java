@@ -31,7 +31,7 @@ import org.springframework.util.ObjectUtils;
 import com.lambdaworks.redis.SetArgs;
 
 import reactor.core.publisher.Flux;
-import reactor.core.tuple.Tuple2;
+import reactor.util.function.Tuple2;
 
 /**
  * @author Christoph Strobl
@@ -132,10 +132,8 @@ public class LettuceReactiveStringCommands implements ReactiveStringCommands {
 
 		return connection.execute(cmd -> {
 			return Flux.zip(keyCollections, Flux.from(keyCollections).flatMap(keys -> {
-				return LettuceReactiveRedisConnection.<List<ByteBuffer>> monoConverter()
-						.convert(cmd
-								.mget(
-										keys.stream().map(ByteBuffer::array).collect(Collectors.toList()).toArray(new byte[keys.size()][]))
+				return LettuceReactiveRedisConnection.<List<ByteBuffer>> monoConverter().convert(
+						cmd.mget(keys.stream().map(ByteBuffer::array).collect(Collectors.toList()).toArray(new byte[keys.size()][]))
 								.map(ByteBuffer::wrap).toList());
 
 			}));
