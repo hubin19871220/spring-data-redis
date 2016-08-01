@@ -25,16 +25,17 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.Test;
-import org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands.KeyValue;
+import org.springframework.data.redis.connection.ReactiveRedisConnection.KeyValue;
+import org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands.GetResponse;
+import org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands.GetSetResponse;
+import org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands.MGetResponse;
+import org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands.SetResponse;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.TestSubscriber;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 /**
  * @author Christoph Strobl
@@ -49,9 +50,9 @@ public class LettuceReactiveStringCommandsTests extends LettuceReactiveCommandsT
 
 		nativeCommands.set(KEY_1, VALUE_1);
 
-		Mono<Optional<ByteBuffer>> result = connection.stringCommands().getSet(KEY_1_BBUFFER, VALUE_2_BBUFFER);
+		Mono<ByteBuffer> result = connection.stringCommands().getSet(KEY_1_BBUFFER, VALUE_2_BBUFFER);
 
-		assertThat(result.block().get(), is(equalTo(VALUE_1_BBUFFER)));
+		assertThat(result.block(), is(equalTo(VALUE_1_BBUFFER)));
 		assertThat(nativeCommands.get(KEY_1), is(equalTo(VALUE_2)));
 	}
 
@@ -61,11 +62,11 @@ public class LettuceReactiveStringCommandsTests extends LettuceReactiveCommandsT
 	@Test
 	public void getSetShouldReturnPreviousValueCorrectlyWhenNoExists() {
 
-		Mono<Optional<ByteBuffer>> result = connection.stringCommands().getSet(KEY_1_BBUFFER, VALUE_2_BBUFFER);
+		Mono<ByteBuffer> result = connection.stringCommands().getSet(KEY_1_BBUFFER, VALUE_2_BBUFFER);
 
-		Optional<ByteBuffer> value = result.block();
+		ByteBuffer value = result.block();
 		assertThat(value, is(notNullValue()));
-		assertThat(value.isPresent(), is(false));
+		assertThat(value, is(equalTo(ByteBuffer.allocate(0))));
 		assertThat(nativeCommands.get(KEY_1), is(equalTo(VALUE_2)));
 	}
 
@@ -76,17 +77,16 @@ public class LettuceReactiveStringCommandsTests extends LettuceReactiveCommandsT
 	public void getSetShouldReturnPreviousValuesCorrectly() {
 
 		KeyValue kv12 = new KeyValue(KEY_1_BBUFFER, VALUE_2_BBUFFER);
-		Flux<Tuple2<KeyValue, Optional<ByteBuffer>>> result = connection.stringCommands()
-				.getSet(Flux.fromIterable(Arrays.asList(KV_1, kv12)));
+		Flux<GetSetResponse> result = connection.stringCommands().getSet(Flux.fromIterable(Arrays.asList(KV_1, kv12)));
 
-		TestSubscriber<Tuple2<KeyValue, Optional<ByteBuffer>>> subscriber = TestSubscriber.create();
+		TestSubscriber<GetSetResponse> subscriber = TestSubscriber.create();
 		result.subscribe(subscriber);
 		subscriber.await();
 
 		subscriber.assertValueCount(2);
-		subscriber.assertValues(Tuples.of(KV_1, Optional.<ByteBuffer> empty()),
-				Tuples.of(kv12, Optional.<ByteBuffer> of(VALUE_1_BBUFFER)));
 
+		subscriber.assertValues(new GetSetResponse(KV_1, ByteBuffer.allocate(0)),
+				new GetSetResponse(kv12, VALUE_1_BBUFFER));
 		assertThat(nativeCommands.get(KEY_1), is(equalTo(VALUE_2)));
 	}
 
@@ -108,10 +108,9 @@ public class LettuceReactiveStringCommandsTests extends LettuceReactiveCommandsT
 	@Test
 	public void setShouldAddValuesCorrectly() {
 
-		Flux<Tuple2<KeyValue, Boolean>> result = connection.stringCommands()
-				.set(Flux.fromIterable(Arrays.asList(KV_1, KV_2)));
+		Flux<SetResponse> result = connection.stringCommands().set(Flux.fromIterable(Arrays.asList(KV_1, KV_2)));
 
-		TestSubscriber<Tuple2<KeyValue, Boolean>> subscriber = TestSubscriber.create();
+		TestSubscriber<SetResponse> subscriber = TestSubscriber.create();
 		result.subscribe(subscriber);
 		subscriber.await();
 
@@ -136,21 +135,52 @@ public class LettuceReactiveStringCommandsTests extends LettuceReactiveCommandsT
 	 * @see DATAREDIS-525
 	 */
 	@Test
+	public void getShouldRetriveNullValueCorrectly() {
+
+		Mono<ByteBuffer> result = connection.stringCommands().get(KEY_1_BBUFFER);
+		assertThat(result.block(), is(equalTo(ByteBuffer.allocate(0))));
+	}
+
+	/**
+	 * @see DATAREDIS-525
+	 */
+	@Test
 	public void getShouldRetriveValuesCorrectly() {
 
 		nativeCommands.set(KEY_1, VALUE_1);
 		nativeCommands.set(KEY_2, VALUE_2);
 
-		Flux<Tuple2<ByteBuffer, ByteBuffer>> result = connection.stringCommands()
+		Flux<GetResponse> result = connection.stringCommands()
 				.get(Flux.fromStream(Arrays.asList(KEY_1_BBUFFER, KEY_2_BBUFFER).stream()));
 
-		TestSubscriber<Tuple2<ByteBuffer, ByteBuffer>> subscriber = TestSubscriber.create();
+		TestSubscriber<GetResponse> subscriber = TestSubscriber.create();
 		result.subscribe(subscriber);
 		subscriber.await();
 
 		subscriber.assertValueCount(2);
-		subscriber.assertContainValues(new HashSet<>(
-				Arrays.asList(Tuples.of(KEY_1_BBUFFER, VALUE_1_BBUFFER), Tuples.of(KEY_2_BBUFFER, VALUE_2_BBUFFER))));
+		subscriber.assertContainValues(new HashSet<>(Arrays.asList(new GetResponse(KEY_1_BBUFFER, VALUE_1_BBUFFER),
+				new GetResponse(KEY_2_BBUFFER, VALUE_2_BBUFFER))));
+	}
+
+	/**
+	 * @see DATAREDIS-525
+	 */
+	@Test
+	public void getShouldRetriveValuesWithNullCorrectly() {
+
+		nativeCommands.set(KEY_1, VALUE_1);
+		nativeCommands.set(KEY_3, VALUE_3);
+
+		Flux<GetResponse> result = connection.stringCommands()
+				.get(Flux.fromStream(Arrays.asList(KEY_1_BBUFFER, KEY_2_BBUFFER, KEY_3_BBUFFER).stream()));
+
+		TestSubscriber<GetResponse> subscriber = TestSubscriber.create();
+		result.subscribe(subscriber);
+		subscriber.await();
+
+		subscriber.assertValueCount(3);
+		subscriber.assertContainValues(new HashSet<>(Arrays.asList(new GetResponse(KEY_1_BBUFFER, VALUE_1_BBUFFER),
+				new GetResponse(KEY_2_BBUFFER, ByteBuffer.allocate(0)), new GetResponse(KEY_3_BBUFFER, VALUE_3_BBUFFER))));
 	}
 
 	/**
@@ -170,6 +200,21 @@ public class LettuceReactiveStringCommandsTests extends LettuceReactiveCommandsT
 	 * @see DATAREDIS-525
 	 */
 	@Test
+	public void mGetShouldRetriveNullValueCorrectly() {
+
+		nativeCommands.set(KEY_1, VALUE_1);
+		nativeCommands.set(KEY_3, VALUE_3);
+
+		Mono<List<ByteBuffer>> result = connection.stringCommands()
+				.mGet(Arrays.asList(KEY_1_BBUFFER, KEY_2_BBUFFER, KEY_3_BBUFFER));
+
+		assertThat(result.block(), contains(VALUE_1_BBUFFER, ByteBuffer.allocate(0), VALUE_3_BBUFFER));
+	}
+
+	/**
+	 * @see DATAREDIS-525
+	 */
+	@Test
 	public void mGetShouldRetriveValuesCorrectly() {
 
 		nativeCommands.set(KEY_1, VALUE_1);
@@ -178,7 +223,7 @@ public class LettuceReactiveStringCommandsTests extends LettuceReactiveCommandsT
 		Flux<List<ByteBuffer>> result = connection.stringCommands()
 				.mGet(
 						Flux.fromIterable(Arrays.asList(Arrays.asList(KEY_1_BBUFFER, KEY_2_BBUFFER), Arrays.asList(KEY_2_BBUFFER))))
-				.map(Tuple2::getT2);
+				.map(MGetResponse::getOutput);
 
 		TestSubscriber<List<ByteBuffer>> subscriber = TestSubscriber.create();
 		result.subscribe(subscriber);

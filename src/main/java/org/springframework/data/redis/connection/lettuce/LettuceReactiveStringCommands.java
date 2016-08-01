@@ -17,21 +17,19 @@ package org.springframework.data.redis.connection.lettuce;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.reactivestreams.Publisher;
+import org.springframework.data.redis.connection.ReactiveRedisConnection.KeyValue;
 import org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands;
 import org.springframework.data.redis.connection.RedisStringCommands.SetOption;
 import org.springframework.data.redis.core.types.Expiration;
 import org.springframework.util.Assert;
-import org.springframework.util.ObjectUtils;
 
 import com.lambdaworks.redis.SetArgs;
 
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
 
 /**
  * @author Christoph Strobl
@@ -53,20 +51,21 @@ public class LettuceReactiveStringCommands implements ReactiveStringCommands {
 	}
 
 	/*
-	* (non-Javadoc)
-	* @see org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands#getSet(org.reactivestreams.Publisher)
-	*/
+	 * (non-Javadoc)
+	 * @see org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands#mGet(org.reactivestreams.Publisher)
+	 */
 	@Override
-	public Flux<Tuple2<KeyValue, Optional<ByteBuffer>>> getSet(Publisher<KeyValue> values) {
+	public Flux<MGetResponse> mGet(Publisher<List<ByteBuffer>> keyCollections) {
 
 		return connection.execute(cmd -> {
 
-			return Flux.zip(values, Flux.from(values).flatMap(kv -> {
+			return Flux.from(keyCollections).flatMap((keys) -> {
 
-				return LettuceReactiveRedisConnection.<Optional<ByteBuffer>> monoConverter()
-						.convert(cmd.getset(kv.keyAsBytes(), kv.valueAsBytes()).map(ByteBuffer::wrap).map(Optional::of)
-								.defaultIfEmpty(Optional.empty()));
-			}));
+				return LettuceReactiveRedisConnection.<MGetResponse> monoConverter().convert(
+						cmd.mget(keys.stream().map(ByteBuffer::array).collect(Collectors.toList()).toArray(new byte[keys.size()][]))
+								.map((value) -> value != null ? ByteBuffer.wrap(value) : ByteBuffer.allocate(0)).toList()
+								.map((values) -> new MGetResponse(keys, values)));
+			});
 		});
 	}
 
@@ -74,14 +73,33 @@ public class LettuceReactiveStringCommands implements ReactiveStringCommands {
 	 * (non-Javadoc)
 	 * @see org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands#set(org.reactivestreams.Publisher)
 	 */
-	public Flux<Tuple2<KeyValue, Boolean>> set(Publisher<KeyValue> publisher) {
+	@Override
+	public Flux<SetResponse> set(Publisher<KeyValue> values) {
 
 		return connection.execute(cmd -> {
+			return Flux.from(values).flatMap((kv) -> {
+				return LettuceReactiveRedisConnection.<Boolean> monoConverter()
+						.convert(cmd.set(kv.getKey().array(), kv.getValue().array()).map(LettuceConverters::stringToBoolean))
+						.map((value) -> new SetResponse(kv, value));
+			});
+		});
+	}
 
-			return Flux.zip(publisher, Flux.from(publisher).flatMap(kv -> {
-				return LettuceReactiveRedisConnection.<Boolean> monoConverter().convert(
-						cmd.set(kv.keyAsBytes(), kv.valueAsBytes()).map(result -> ObjectUtils.nullSafeEquals("OK", result)));
-			}));
+	/*
+	 * (non-Javadoc)
+	 * @see org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands#getSet(org.reactivestreams.Publisher)
+	 */
+	@Override
+	public Flux<GetSetResponse> getSet(Publisher<KeyValue> values) {
+
+		return connection.execute(cmd -> {
+			return Flux.from(values).flatMap((kv) -> {
+
+				return LettuceReactiveRedisConnection.<GetSetResponse> monoConverter()
+						.convert(cmd.getset(kv.getKey().array(), kv.getValue().array())
+								.map((value) -> new GetSetResponse(kv, ByteBuffer.wrap(value)))
+								.defaultIfEmpty(new GetSetResponse(kv, ByteBuffer.allocate(0))));
+			});
 		});
 	}
 
@@ -90,17 +108,19 @@ public class LettuceReactiveStringCommands implements ReactiveStringCommands {
 	 * @see org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands#set(org.reactivestreams.Publisher, java.util.function.Supplier, java.util.function.Supplier)
 	 */
 	@Override
-	public Flux<Tuple2<KeyValue, Boolean>> set(Publisher<KeyValue> publisher, Supplier<Expiration> expiration,
+	public Flux<SetResponse> set(Publisher<KeyValue> values, Supplier<Expiration> expiration,
 			Supplier<SetOption> option) {
 
 		return connection.execute(cmd -> {
 
-			return Flux.zip(publisher, Flux.from(publisher).flatMap(kv -> {
+			return Flux.from(values).flatMap((kv) -> {
 
 				SetArgs args = LettuceConverters.toSetArgs(expiration.get(), option.get());
-				return LettuceReactiveRedisConnection.<Boolean> monoConverter().convert(
-						cmd.set(kv.keyAsBytes(), kv.valueAsBytes(), args).map(result -> ObjectUtils.nullSafeEquals("OK", result)));
-			}));
+
+				return LettuceReactiveRedisConnection.<Boolean> monoConverter()
+						.convert(cmd.set(kv.getKey().array(), kv.getValue().array(), args).map(LettuceConverters::stringToBoolean))
+						.map((value) -> new SetResponse(kv, value));
+			});
 		});
 	}
 
@@ -109,34 +129,15 @@ public class LettuceReactiveStringCommands implements ReactiveStringCommands {
 	 * @see org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands#get(org.reactivestreams.Publisher)
 	 */
 	@Override
-	public Flux<Tuple2<ByteBuffer, ByteBuffer>> get(Publisher<ByteBuffer> keys) {
-
-		final Publisher<ByteBuffer> p = !keys.getClass().getName().endsWith("FluxStream") ? keys
-				: Flux.fromIterable(Flux.from(keys).collectList().block());
+	public Flux<GetResponse> get(Publisher<ByteBuffer> keys) {
 
 		return connection.execute(cmd -> {
+			return Flux.from(keys).flatMap((key) -> {
 
-			return Flux.zip(p, Flux.from(p).flatMap(key -> {
 				return LettuceReactiveRedisConnection.<ByteBuffer> monoConverter()
-						.convert(cmd.get(key.array()).map(ByteBuffer::wrap));
-			}));
-		});
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * @see org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveStringCommands#mGet(org.reactivestreams.Publisher)
-	 */
-	@Override
-	public Flux<Tuple2<List<ByteBuffer>, List<ByteBuffer>>> mGet(Publisher<List<ByteBuffer>> keyCollections) {
-
-		return connection.execute(cmd -> {
-			return Flux.zip(keyCollections, Flux.from(keyCollections).flatMap(keys -> {
-				return LettuceReactiveRedisConnection.<List<ByteBuffer>> monoConverter().convert(
-						cmd.mget(keys.stream().map(ByteBuffer::array).collect(Collectors.toList()).toArray(new byte[keys.size()][]))
-								.map(ByteBuffer::wrap).toList());
-
-			}));
+						.convert(cmd.get(key.array()).map(ByteBuffer::wrap)).map((value) -> new GetResponse(key, value))
+						.defaultIfEmpty(new GetResponse(key, ByteBuffer.allocate(0)));
+			});
 		});
 	}
 

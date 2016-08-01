@@ -24,7 +24,6 @@ import org.springframework.data.redis.connection.ReactiveRedisConnection;
 import org.springframework.util.Assert;
 
 import reactor.core.publisher.Flux;
-import reactor.util.function.Tuple2;
 
 /**
  * @author Christoph Strobl
@@ -50,13 +49,14 @@ public class LettuceReactiveKeyCommands implements ReactiveRedisConnection.React
 	 * @see org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveKeyCommands#del(org.reactivestreams.Publisher)
 	 */
 	@Override
-	public Flux<Tuple2<ByteBuffer, Long>> del(Publisher<ByteBuffer> keys) {
+	public Flux<DelResponse> del(Publisher<ByteBuffer> keys) {
 
 		return connection.execute(cmd -> {
 
-			return Flux.zip(keys, Flux.from(keys).flatMap(key -> {
-				return LettuceReactiveRedisConnection.<Long> monoConverter().convert(cmd.del(key.array()));
-			}));
+			return Flux.from(keys).flatMap((key) -> {
+				return LettuceReactiveRedisConnection.<DelResponse> monoConverter()
+						.convert(cmd.del(key.array()).map((value) -> new DelResponse(key, value)));
+			});
 		});
 	}
 
@@ -65,15 +65,16 @@ public class LettuceReactiveKeyCommands implements ReactiveRedisConnection.React
 	 * @see org.springframework.data.redis.connection.ReactiveRedisConnection.ReactiveKeyCommands#mDel(org.reactivestreams.Publisher)
 	 */
 	@Override
-	public Flux<Tuple2<List<ByteBuffer>, Long>> mDel(Publisher<List<ByteBuffer>> keys) {
+	public Flux<MDelResponse> mDel(Publisher<List<ByteBuffer>> keysCollection) {
 
 		return connection.execute(cmd -> {
 
-			return Flux.zip(keys, Flux.from(keys).flatMap(key -> {
-
-				return LettuceReactiveRedisConnection.<Long> monoConverter().convert(
-						cmd.del(key.stream().map(ByteBuffer::array).collect(Collectors.toList()).toArray(new byte[key.size()][])));
-			}));
+			return Flux.from(keysCollection).flatMap((keys) -> {
+				return LettuceReactiveRedisConnection.<MDelResponse> monoConverter()
+						.convert(cmd
+								.del(keys.stream().map(ByteBuffer::array).collect(Collectors.toList()).toArray(new byte[keys.size()][]))
+								.map((value) -> new MDelResponse(keys, value)));
+			});
 		});
 	}
 
